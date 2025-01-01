@@ -120,11 +120,11 @@ func (p *httpProtocol) getRawData(code int) (*string, error) {
 	dataParam := getDataFromReply(reply)
 
 	if command != code {
-		return nil, errors.WithStack(fmt.Errorf("unexpected comand reply: %d, %s", command, reply))
+		return nil, errors.WithStack(fmt.Errorf("unexpected comand reply: e:%d r:%d, %s (%s)", code, command, reply, url))
 	}
 
 	if strings.HasPrefix(dataParam, "NACK") {
-		return nil, errors.WithStack(fmt.Errorf("error in command: %d", command))
+		return nil, errors.WithStack(fmt.Errorf("error in command: %d ($%s)", command, url))
 	}
 
 	return &dataParam, nil

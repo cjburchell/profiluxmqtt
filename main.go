@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/cjburchell/profiluxmqtt/update"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/cjburchell/profiluxmqtt/update"
 
 	appSettings "github.com/cjburchell/profiluxmqtt/settings"
 	"github.com/cjburchell/tools-go/env"
@@ -15,7 +16,7 @@ import (
 
 	"github.com/cjburchell/settings-go"
 	logger "github.com/cjburchell/uatu-go"
-	"github.com/eclipse/paho.mqtt.golang"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 
 	profiluxmqtt "github.com/cjburchell/profiluxmqtt/mqtt"
 )
@@ -76,7 +77,7 @@ func main() {
 		}
 
 		log.Error(err, "Unable to do first update")
-		log.Debugf("RefreshSettings Sleeping for %s", logRate.String())
+		log.Printf("RefreshSettings Sleeping for %s", logRate.String())
 		<-time.After(logRate)
 		continue
 	}
@@ -84,14 +85,13 @@ func main() {
 	profiluxMqtt.UpdateMQTT(controllerRepo, mqttClient, log, false)
 	profiluxMqtt.UpdateHomeAssistant(controllerRepo, mqttClient, log, false)
 
-	go RunUpdateConfig(controllerRepo, mqttClient, log, appConfig, &profiluxMqtt)
 	RunUpdate(controllerRepo, mqttClient, log, appConfig, &profiluxMqtt)
 }
 
 const logRate = time.Second * 1
 const logAllRate = time.Minute * 1
 
-func RunUpdateConfig(controller repo.Controller, mqttClient mqtt.Client, log logger.ILog, config appSettings.Config, profiluxMqtt *profiluxmqtt.ProfiluxMqtt) {
+func RunUpdate(controller repo.Controller, mqttClient mqtt.Client, log logger.ILog, config appSettings.Config, profiluxMqtt *profiluxmqtt.ProfiluxMqtt) {
 	c := make(chan os.Signal, 1) // we need to reserve to buffer size 1, so the notifier are not blocked
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -109,18 +109,6 @@ func RunUpdateConfig(controller repo.Controller, mqttClient mqtt.Client, log log
 				profiluxMqtt.UpdateMQTT(controller, mqttClient, log, true)
 				profiluxMqtt.UpdateHomeAssistant(controller, mqttClient, log, true)
 			}
-		}
-	}
-}
-
-func RunUpdate(controller repo.Controller, mqttClient mqtt.Client, log logger.ILog, config appSettings.Config, profiluxMqtt *profiluxmqtt.ProfiluxMqtt) {
-	c := make(chan os.Signal, 1) // we need to reserve to buffer size 1, so the notifier are not blocked
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	for {
-		select {
-		case <-c:
-			log.Debug("Exit Application")
-			return
 		case <-time.After(logRate):
 			log.Debug("Updating State")
 			var err = update.State(controller, log, config.Connection)

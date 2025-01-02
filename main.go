@@ -94,13 +94,19 @@ const logAllRate = time.Minute * 1
 func RunUpdate(controller repo.Controller, mqttClient mqtt.Client, log logger.ILog, config appSettings.Config, profiluxMqtt *profiluxmqtt.ProfiluxMqtt) {
 	c := make(chan os.Signal, 1) // we need to reserve to buffer size 1, so the notifier are not blocked
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	logRateTimer := time.NewTicker(logRate)
+	logAllRateTimer := time.NewTicker(logAllRate)
+	defer logRateTimer.Stop()
+	defer logAllRateTimer.Stop()
+
 	for {
 		select {
 		case <-c:
 			profiluxMqtt.PublishMQTT(mqttClient, log, "status", "offline", true)
 			log.Debug("Exit Application")
 			return
-		case <-time.After(logAllRate):
+		case <-logAllRateTimer.C:
 			log.Debug("Updating Config")
 			var err = update.All(controller, log, config.Connection)
 			if err != nil {
@@ -109,7 +115,7 @@ func RunUpdate(controller repo.Controller, mqttClient mqtt.Client, log logger.IL
 				profiluxMqtt.UpdateMQTT(controller, mqttClient, log, true)
 				profiluxMqtt.UpdateHomeAssistant(controller, mqttClient, log, true)
 			}
-		case <-time.After(logRate):
+		case <-logRateTimer.C:
 			log.Debug("Updating State")
 			var err = update.State(controller, log, config.Connection)
 			if err != nil {

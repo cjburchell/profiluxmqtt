@@ -67,7 +67,8 @@ func main() {
 
 	var profiluxMqtt profiluxmqtt.ProfiluxMqtt
 
-	profiluxmqtt.RegisterCommands(&profiluxMqtt, mqttClient, controllerRepo, log, appConfig)
+	commandRefreshChannel := make(chan string)
+	profiluxmqtt.RegisterCommands(commandRefreshChannel, mqttClient, controllerRepo, log, appConfig)
 
 	log.Debugf("Getting Data from Controller")
 	for {
@@ -85,13 +86,13 @@ func main() {
 	profiluxMqtt.UpdateMQTT(controllerRepo, mqttClient, log, false)
 	profiluxMqtt.UpdateHomeAssistant(controllerRepo, mqttClient, log, false)
 
-	RunUpdate(controllerRepo, mqttClient, log, appConfig, &profiluxMqtt)
+	RunUpdate(controllerRepo, mqttClient, log, appConfig, &profiluxMqtt, commandRefreshChannel)
 }
 
 const logRate = time.Second * 1
 const logAllRate = time.Minute * 1
 
-func RunUpdate(controller repo.Controller, mqttClient mqtt.Client, log logger.ILog, config appSettings.Config, profiluxMqtt *profiluxmqtt.ProfiluxMqtt) {
+func RunUpdate(controller repo.Controller, mqttClient mqtt.Client, log logger.ILog, config appSettings.Config, profiluxMqtt *profiluxmqtt.ProfiluxMqtt, commandRefreshChannel chan string) {
 	c := make(chan os.Signal, 1) // we need to reserve to buffer size 1, so the notifier are not blocked
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
@@ -115,6 +116,17 @@ func RunUpdate(controller repo.Controller, mqttClient mqtt.Client, log logger.IL
 				profiluxMqtt.UpdateMQTT(controller, mqttClient, log, true)
 				profiluxMqtt.UpdateHomeAssistant(controller, mqttClient, log, true)
 			}
+			break
+
+		case <-commandRefreshChannel:
+			log.Print("Updating Refresh State")
+			var err = update.State(controller, log, config.Connection)
+			if err != nil {
+				log.Errorf(err, "Unable to update state")
+			} else {
+				profiluxMqtt.UpdateMQTT(controller, mqttClient, log, false)
+			}
+			break
 		case <-logRateTimer.C:
 			log.Debug("Updating State")
 			var err = update.State(controller, log, config.Connection)
@@ -123,6 +135,7 @@ func RunUpdate(controller repo.Controller, mqttClient mqtt.Client, log logger.IL
 			} else {
 				profiluxMqtt.UpdateMQTT(controller, mqttClient, log, false)
 			}
+			break
 		}
 	}
 }

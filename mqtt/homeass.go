@@ -337,6 +337,57 @@ func (profiMqtt *ProfiluxMqtt) UpdateHomeAssistant(controllerRepo repo.Controlle
 		}
 		msg, _ := json.Marshal(stateConfig)
 		profiMqtt.publishHA(mqttClient, log, "sensor", controllerName, name, msg, forceUpdate)
+
+		setpointConfig := HaStateConfig{
+			HaBaseConfig: HaBaseConfig{
+				Device:              device,
+				Name:                fmt.Sprintf("%s Probe Set %s", deviceName, p.DisplayName),
+				UniqueId:            fmt.Sprintf("%s_%s_setpoint", controllerName, name),
+				AvailabilityTopic:   "profiluxmqtt/status",
+				PayloadAvailable:    "online",
+				PayloadNotAvailable: "offline",
+				DeviceClass:         deviceClass,
+				Icon:                icon,
+			},
+			StateTopic:        fmt.Sprintf("profiluxmqtt/%s/Probes/%s/setpoint", controllerName, name),
+			UnitOfMeasurement: p.Units,
+		}
+		msg2, _ := json.Marshal(setpointConfig)
+		profiMqtt.publishHA(mqttClient, log, "sensor", controllerName, name+"_setpoint", msg2, forceUpdate)
+
+		minConfig := HaStateConfig{
+			HaBaseConfig: HaBaseConfig{
+				Device:              device,
+				Name:                fmt.Sprintf("%s Probe Min %s", deviceName, p.DisplayName),
+				UniqueId:            fmt.Sprintf("%s_%s_min", controllerName, name),
+				AvailabilityTopic:   "profiluxmqtt/status",
+				PayloadAvailable:    "online",
+				PayloadNotAvailable: "offline",
+				DeviceClass:         deviceClass,
+				Icon:                icon,
+			},
+			StateTopic:        fmt.Sprintf("profiluxmqtt/%s/Probes/%s/min", controllerName, name),
+			UnitOfMeasurement: p.Units,
+		}
+		msg3, _ := json.Marshal(minConfig)
+		profiMqtt.publishHA(mqttClient, log, "sensor", controllerName, name+"_min", msg3, forceUpdate)
+
+		maxConfig := HaStateConfig{
+			HaBaseConfig: HaBaseConfig{
+				Device:              device,
+				Name:                fmt.Sprintf("%s Probe max %s", deviceName, p.DisplayName),
+				UniqueId:            fmt.Sprintf("%s_%s_max", controllerName, name),
+				AvailabilityTopic:   "profiluxmqtt/status",
+				PayloadAvailable:    "online",
+				PayloadNotAvailable: "offline",
+				DeviceClass:         deviceClass,
+				Icon:                icon,
+			},
+			StateTopic:        fmt.Sprintf("profiluxmqtt/%s/Probes/%s/max", controllerName, name),
+			UnitOfMeasurement: p.Units,
+		}
+		msg4, _ := json.Marshal(maxConfig)
+		profiMqtt.publishHA(mqttClient, log, "sensor", controllerName, name+"_max", msg4, forceUpdate)
 	}
 
 	levelSensors, _ := controllerRepo.GetLevelSensors()

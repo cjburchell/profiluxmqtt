@@ -105,6 +105,8 @@ func (profiMqtt *ProfiluxMqtt) UpdateMQTT(controllerRepo repo.Controller, mqttCl
 		data, _ := json.Marshal(p)
 		profiMqtt.PublishMQTT(mqttClient, log, path+"/data", string(data), forceUpdate)
 		profiMqtt.PublishMQTT(mqttClient, log, path+"/setpoint", fmt.Sprintf("%.2f", p.CenterValue), forceUpdate)
+		profiMqtt.PublishMQTT(mqttClient, log, path+"/min", fmt.Sprintf("%.2f", p.MinRange), forceUpdate)
+		profiMqtt.PublishMQTT(mqttClient, log, path+"/max", fmt.Sprintf("%.2f", p.MaxRange), forceUpdate)
 		profiMqtt.PublishMQTT(mqttClient, log, path+"/state", fmt.Sprintf("%.2f", p.Value), forceUpdate)
 		profiMqtt.PublishMQTT(mqttClient, log, path+"/convertedvalue", fmt.Sprintf("%.2f", p.ConvertedValue), forceUpdate)
 	}
